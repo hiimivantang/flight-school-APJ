@@ -17,7 +17,7 @@
 
 # COMMAND ----------
 
-# This creates the "team_name" field displayed at the top of the notebook.
+## This creates the "team_name" field displayed at the top of the notebook.
 
 dbutils.widgets.text("team_name", "Enter your team's name");
 
@@ -387,24 +387,14 @@ for s in spark.streams.active:
 # MAGIC %md
 # MAGIC ### Transform an incoming stream
 # MAGIC 
-# MAGIC we can now start to apply transformation logic to our data in real time. filter only specific device_type(RECTIFIER)
+# MAGIC we can now start to apply transformation logic to our data in real time. Data Scientist found that if sum(reading_1 + reading_2 + reading_3) over 30 then that we need to check that devices. so they asked Data Engineering team to add new filed called newStatus in real time streaming data.
 
 # COMMAND ----------
 
 from pyspark.sql.functions import when
 
-tranform_stream = readings_stream.withColumn("newStatus", when(readings_stream.reading_1 <20, "T").when(readings_stream.reading_1 >=20,"F"))
+tranform_stream = readings_stream.withColumn("newStatus", when(readings_stream.reading_1 + readings_stream.reading_2 + readings_stream.reading_3 < 30, "NORMAL").when(readings_stream.reading_1 + readings_stream.reading_2 + readings_stream.reading_3 >= 30,"WARN"))
 display(tranform_stream, streaName="test")
-
-# COMMAND ----------
-
-from pyspark.sql.functions import col
-
-transform_stream = out_stream.filter((col("device_type")=="RECTIFIER") & (col("reading_1") > 20)).select("device_type","reading_1","count_reading_1")
-
-display(transform_stream,streamName="transform_demo")
-
-
 
 # COMMAND ----------
 
@@ -423,4 +413,5 @@ display(transform_stream,streamName="transform_demo")
 # MAGIC * <a href="https://www.youtube.com/watch?v=rl8dIzTpxrI" target="_blank">A Deep Dive into Structured Streaming</a> by Tathagata Das. This is an excellent video describing how Structured Streaming works.
 
 # COMMAND ----------
+
 
