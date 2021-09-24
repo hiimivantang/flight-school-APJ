@@ -531,9 +531,9 @@ print(f"UUID: {RunTrain_UUID}")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ####how could MLflow help you find your most desirable model? 
-# MAGIC it is platform for managing the complete ML lifecycle. With MLflow, data scientists can track and share experiments locally or in the cloud, package and share models across frameworks, centrally manage and deploy models virtually anywhere.
-# MAGIC it automatically keep track of parameters, results, code and data from each experiment so we can identify champion model easily.
+# MAGIC ####How could MLflow help you find your most desirable model? 
+# MAGIC It is platform for managing the complete ML lifecycle. With MLflow, data scientists can track and share experiments locally or in the cloud, package and share models across frameworks, centrally manage and deploy models virtually anywhere.
+# MAGIC It automatically keep track of (hyper)parameters, results, code and data from each experiment so we can identify champion model easily.
 # MAGIC 
 # MAGIC ####How could it help you avoid repeating runs?
 # MAGIC MLflow provides Tracking feature. it is an API and UI for logging parameters, code versions, metrics, and output files as well when running your ML code. so Data Scientist does not need to run ML code again to get those information. Data Scientist can get previous experiment information without re-running ML codes.
@@ -762,6 +762,63 @@ display(spark.sql("""
 # MAGIC ### Take it to the next level!
 # MAGIC 
 # MAGIC We have only scratched the surface of MLflow.  If time permits, explore another of its many capabilities, and show your results here.
+
+# COMMAND ----------
+
+# MAGIC %md 
+# MAGIC 
+# MAGIC #### Model Registry
+# MAGIC 
+# MAGIC <img src="https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fitang%2FvnwfoEY_je.png?alt=media&token=cab08ae7-3fbe-4fc6-b76f-893381ceb28f" alt="drawing" width="1000"/>
+
+# COMMAND ----------
+
+mlflow.register_model("runs:/9116fa3cd6ee4feeaaca7aad637e89e9/spark-model", "teamapj-predict-device-operational-status")
+
+# COMMAND ----------
+
+import mlflow
+from mlflow.utils.rest_utils import http_request
+import json
+import urllib
+
+def client():
+  return mlflow.tracking.client.MlflowClient()
+
+host_creds = client()._tracking_client.store.get_host_creds()
+host = host_creds.host
+token = host_creds.token
+
+def mlflow_call_endpoint(endpoint, method, body='{}'):
+  if method == 'GET':
+      response = http_request(
+          host_creds=host_creds, endpoint="/api/2.0/mlflow/{}".format(endpoint), method=method, params=json.loads(body))
+  else:
+      response = http_request(
+          host_creds=host_creds, endpoint="/api/2.0/mlflow/{}".format(endpoint), method=method, json=json.loads(body))
+  return response.json()
+
+
+
+
+slack_webhook = dbutils.secrets.get('rk_webhooks','slack')
+
+trigger_slack = json.dumps({
+  "model_name": "teamapj-predict-device-operational-status",
+  "events": ["TRANSITION_REQUEST_CREATED","MODEL_VERSION_TRANSITIONED_STAGE"],
+  "description": "Notify the MLOps team that a model has moved from None to Staging.",
+  "status": "ACTIVE",
+  "http_url_spec": {
+    "url": slack_webhook
+  }
+})
+
+mlflow_call_endpoint("registry-webhooks/create", method = "POST", body = trigger_slack)
+
+# COMMAND ----------
+
+list_model_webhooks = json.dumps({"model_name": "teamapj-predict-device-operational-status"})
+mlflow_call_endpoint("registry-webhooks/list", method = "GET", body = list_model_webhooks)
 
 # COMMAND ----------
 
