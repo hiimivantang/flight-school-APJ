@@ -768,15 +768,18 @@ display(spark.sql("""
 # MAGIC %md 
 # MAGIC 
 # MAGIC #### Model Registry
+# MAGIC https://www.mlflow.org/docs/latest/model-registry.html
 # MAGIC 
 # MAGIC <img src="https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fitang%2FvnwfoEY_je.png?alt=media&token=cab08ae7-3fbe-4fc6-b76f-893381ceb28f" alt="drawing" width="1000"/>
 
 # COMMAND ----------
 
+# DBTITLE 1,Registering our model
 mlflow.register_model("runs:/9116fa3cd6ee4feeaaca7aad637e89e9/spark-model", "teamapj-predict-device-operational-status")
 
 # COMMAND ----------
 
+# DBTITLE 1,Setting up our incoming webhook for Slack notifications
 import mlflow
 from mlflow.utils.rest_utils import http_request
 import json
@@ -817,8 +820,18 @@ mlflow_call_endpoint("registry-webhooks/create", method = "POST", body = trigger
 
 # COMMAND ----------
 
+# DBTITLE 1,List all webhooks for our model
 list_model_webhooks = json.dumps({"model_name": "teamapj-predict-device-operational-status"})
 mlflow_call_endpoint("registry-webhooks/list", method = "GET", body = list_model_webhooks)
+
+# COMMAND ----------
+
+# MAGIC %md 
+# MAGIC 
+# MAGIC ##### Let's request to transition our model to `PROD`
+# MAGIC 
+# MAGIC 
+# MAGIC <a href="https://e2-demo-tokyo.cloud.databricks.com/?o=5099015744649857#mlflow/models" rel="models">![models](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fitang%2FbnfJDxF7Yb.png?alt=media&token=7f979524-dc0e-47dc-96bb-86336446b391)</a>
 
 # COMMAND ----------
 
