@@ -192,7 +192,7 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     # 
     # TO DO... use the mlflow api to log a Tag named "Owner" and set the value to p_owner
     # 
-    
+    mlflow.set_tag("Owner","p_owner")
     #
     # END OF TO DO
     #
@@ -201,7 +201,7 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     # 
     # TO DO... use the mlflow api to log a Parameter named "Maximum Depth" and set the value to p_max_depth
     # 
-    
+    mlflow.log_param("Maximum Depth",p_max_depth)
     # 
     # END OF TO DO
     #
@@ -232,7 +232,7 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     # 
     # END OF TO DO
     #
-
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 1) # if unspecified, each metric is logged at step zero but we set it as 1
     # STEP 2: Index the Categorical data so the Decision Tree can use it
     # We'll use an MLflow metric to log the time taken in each step 
     start_time = time.time()
@@ -256,7 +256,7 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     # TO DO... use the mlflow API to log a Metric named "Step Elapsed Time" and set the value to the elapsed_time calculated above
     # NOTE: this will be a multi-step metric that shows the elapsed time for each step in this function.
     #       Set this call to be step 2
-    
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 2)
     # 
     # END OF TO DO
     #
@@ -287,7 +287,7 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     # TO DO... use the mlflow API to log a Metric named "Step Elapsed Time" and set the value to the elapsed_time calculated above
     # NOTE: this will be a multi-step metric that shows the elapsed time for each step in this function.
     #       Set this call to be step 3
-    
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 3)
     # 
     # END OF TO DO
     #
@@ -310,7 +310,7 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     # TO DO... use the mlflow API to log a Metric named "Step Elapsed Time" and set the value to the elapsed_time calculated above
     # NOTE: this will be a multi-step metric that shows the elapsed time for each step in this function.
     #       Set this call to be step 4
-    
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 4)
     # 
     # END OF TO DO
     #
@@ -329,7 +329,8 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     # - "Test Data Rows" populated with the count of rows in test_data above
     # NOTE: these metrics only occur once... they are not series
     #
-    
+    metrics = {"Training Data Rows": training_data.count(), "Test Data Rows": test_data.count()}
+    mlflow.log_metrics(metrics)
     # 
     # END OF TO DO
     #
@@ -341,7 +342,7 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     # TO DO... use the mlflow API to log a Metric named "Step Elapsed Time" and set the value to the elapsed_time calculated above
     # NOTE: this will be a multi-step metric that shows the elapsed time for each step in this function.
     #       Set this call to be step 5
-    
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 5)
     # 
     # END OF TO DO
     #
@@ -366,7 +367,7 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     # TO DO... use the mlflow API to log a Metric named "Step Elapsed Time" and set the value to the elapsed_time calculated above
     # NOTE: this will be a multi-step metric that shows the elapsed time for each step in this function.
     #       Set this call to be step 6
-    
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 6)
     # 
     # END OF TO DO
     #    
@@ -385,7 +386,7 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     # TO DO... use the mlflow API to log a Metric named "Step Elapsed Time" and set the value to the elapsed_time calculated above
     # NOTE: this will be a multi-step metric that shows the elapsed time for each step in this function.
     #       Set this call to be step 7
-    
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 7)
     # 
     # END OF TO DO
     #
@@ -404,7 +405,7 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     # TO DO... use the mlflow API to log a Metric named "Accuracy" and set the value to the accuracy variable calculated above
     # NOTE: this is a 1-time metric, not a series
     #
-    
+    mlflow.log_metric("Accuracy", accuracy)
     # 
     # END OF TO DO
     #
@@ -414,7 +415,7 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     # TO DO... use the mlflow API to log a Parameter named "Feature Importances" 
     # and set the value to a model attribute called model.featureImportances (cast to a string)
     #
-    
+    mlflow.log_param("Feature Importances", str(model.featureImportances))
     #
     # END OF TO DO
     #
@@ -426,7 +427,7 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     # TO DO... use the mlflow API to log a Metric named "Step Elapsed Time" and set the value to the elapsed_time calculated above
     # NOTE: this will be a multi-step metric that shows the elapsed time for each step in this function.
     #       Set this call to be step 8
-    
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 8)
     # 
     # END OF TO DO
     #
@@ -438,7 +439,7 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     # TO DO... use the mlflow API to log a Metric named "Overall Elapsed Time" and set the value to the elapsed_time calculated above
     # NOTE: this is a 1-time metric, not a series
     #      
-    
+    mlflow.log_metric("Overall Elapsed Time", overall_elapsed_time)
     # 
     # END OF TO DO
     #
@@ -449,7 +450,7 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     # NOTES:
     #  - We imported the relevant library earlier, using "from mlflow import spark as mlflow_spark" to avoid name collisions, so prefix your API call with "mlflow_spark.<your-api-call>"
     #  - You only need to use the first two parameters of the call.  The first is the model itself, and the second should be "spark-model"
-    
+    mlflow_spark.log_model(model,"spark-model") #https://www.mlflow.org/docs/latest/python_api/mlflow.spark.html#mlflow.spark.log_model
     #
     # END OF TO DO
     #
@@ -478,10 +479,27 @@ def training_run(p_max_depth = 2, p_owner = "default") :
 # Call the "training_run" function several times, using different parameter values
 # What does the function return?  Print out the return value with a meaningful message
 #
-
+RunTrain_UUID = training_run(2,"TeamAPJ1")
+print(f"UUID: {RunTrain_UUID}")
 #
 # END OF TO DO
 #
+
+# COMMAND ----------
+
+RunTrain_UUID = training_run(4,"TeamAPJ2")
+print(f"UUID: {RunTrain_UUID}")
+RunTrain_UUID = training_run(6,"TeamAPJ3")
+print(f"UUID: {RunTrain_UUID}")
+RunTrain_UUID = training_run(8,"TeamAPJ4")
+print(f"UUID: {RunTrain_UUID}")
+
+# COMMAND ----------
+
+RunTrain_UUID = training_run(10,"TeamAPJ4")
+print(f"UUID: {RunTrain_UUID}")
+
+# when we set 10 for p_max_depth we can get the most high accurary 0.967
 
 # COMMAND ----------
 
