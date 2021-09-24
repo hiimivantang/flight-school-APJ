@@ -531,6 +531,19 @@ print(f"UUID: {RunTrain_UUID}")
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ####how could MLflow help you find your most desirable model? 
+# MAGIC it is platform for managing the complete ML lifecycle. With MLflow, data scientists can track and share experiments locally or in the cloud, package and share models across frameworks, centrally manage and deploy models virtually anywhere.
+# MAGIC it automatically keep track of parameters, results, code and data from each experiment so we can identify champion model easily.
+# MAGIC 
+# MAGIC ####How could it help you avoid repeating runs?
+# MAGIC MLflow provides Tracking feature. it is an API and UI for logging parameters, code versions, metrics, and output files as well when running your ML code. so Data Scientist does not need to run ML code again to get those information. Data Scientist can get previous experiment information without re-running ML codes.
+# MAGIC 
+# MAGIC ####How could it help you demonstrate your results to your teammates?
+# MAGIC MLFlow standardized ML lifecycle during data prep/build model/deploy model. Regarding building model, MLflow tracking feature enable DS to run multiple variations of model training and tracking the results of each run in order to train the best possible model. it also proivde easy way to find those information with GUI. furthermore you can demonstrate your result to your collegue more efficiently sicne Databricks provides MLFlow integration with Databricks notebooks 
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ###PART 3... 
 # MAGIC 
 # MAGIC Now let's play the role of a developer who wants to __*use*__ a model created by a Data Scientist.
@@ -561,7 +574,12 @@ df_client.createOrReplaceTempView("vw_client")
 # This is possible because we logged accuracy as a metric using MLflow
 # Then we can grab the run_id to get a handle to the model itself
 
-df_model_selector = 
+df_model_selector = spark.sql("""
+select experiment_id,run_id,end_time, metrics.Accuracy as accuracy, concat(artifact_uri, '/spark-model' ) as artifact_uri
+from vw_client
+where status='FINISHED'
+order by metrics.Accuracy desc
+                             """)
 #
 # TO DO... write a query that brings back the following columns from vw_client into a dataframe:
 # - experiment_id
@@ -604,7 +622,7 @@ print(f"Selected model URI: {selected_model_uri}")
 # Find the proper API call to load the model (parameter is selected_model_uri)
 # Remember to prefix the API call with mlflow_spark
 #
-
+selected_model = mlflow_spark.load_model(selected_model_uri)
 #
 # END OF TO DO
 #
@@ -719,13 +737,13 @@ display(spark.sql("""
 # MAGIC     reading_2,
 # MAGIC     reading_3,
 # MAGIC     CASE   -- Change the numeric predictions to user-friendly text values
-# MAGIC       WHEN prediction = 0 THEN <TO_DO... enter appropriate text string>
-# MAGIC       WHEN prediction = 1 THEN <TO_DO... enter appropriate text string>
-# MAGIC       WHEN prediction = 2 THEN <TO_DO... enter appropriate text string>
-# MAGIC       WHEN prediction = 3 THEN <TO_DO... enter appropriate text string>
-# MAGIC       WHEN prediction = 4 THEN <TO_DO... enter appropriate text string>
-# MAGIC       WHEN prediction = 5 THEN <TO_DO... enter appropriate text string>
-# MAGIC       WHEN prediction = 6 THEN <TO_DO... enter appropriate text string>
+# MAGIC       WHEN prediction = 0 THEN "RISING"
+# MAGIC       WHEN prediction = 1 THEN "IDLE"
+# MAGIC       WHEN prediction = 2 THEN "NOMINAL"
+# MAGIC       WHEN prediction = 3 THEN "HIGH"
+# MAGIC       WHEN prediction = 4 THEN "RESETTING"
+# MAGIC       WHEN prediction = 5 THEN "FAILURE"
+# MAGIC       WHEN prediction = 6 THEN "DESCENDING"
 # MAGIC       ELSE 'UNKNOWN'
 # MAGIC     END AS predicted_device_operational_status
 # MAGIC   FROM vw_client_predictions
