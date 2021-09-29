@@ -3,7 +3,7 @@
 # We'll strip special characters from this field, then use it to define unique path names (local and dbfs) as well as a unique database name.
 # This prevents name collisions in a multi-team flight school.
 
-dbutils.widgets.text("team_name", "");
+dbutils.widgets.text("team_name", "TEAMAPJ");
 
 # COMMAND ----------
 
@@ -19,7 +19,7 @@ clean_team_name = re.sub('[^A-Za-z0-9]+', '', team_name).lower();
 print(f"Team Name with special characters removed: {clean_team_name}");
 
 # Construct the unique path to be used to store files on the local file system
-local_data_path = f"flight-school-{clean_team_name}/assignment-3/"
+local_data_path = f"/databricks/driver/flight-school-{clean_team_name}/assignment-3/"
 print(f"Path to be used for Local Files: {local_data_path}")
 
 # Construct the unique path to be used to store files on the DBFS file system
@@ -69,6 +69,10 @@ stdout.decode('utf-8'), stderr.decode('utf-8')
 
 # COMMAND ----------
 
+
+
+# COMMAND ----------
+
 # Download Initial CSV file used in the workshop
 
 process = subprocess.Popen(['wget', '-P', local_data_path, 'https://www.dropbox.com/s/vuaq3vkbzv8fgml/sensor_readings_current_labeled_v4.csv'],
@@ -83,7 +87,7 @@ stdout.decode('utf-8'), stderr.decode('utf-8')
 # Copy the downloaded data to DBFS
 
 dbutils.fs.rm(f"dbfs:/FileStore/flight/{dbfs_data_path}/sensor_readings_current_labeled.csv")
-dbutils.fs.cp(f"file:/databricks/driver/{local_data_path}/sensor_readings_current_labeled_v4.csv", f"dbfs:/FileStore/flight/{dbfs_data_path}sensor_readings_current_labeled.csv")
+dbutils.fs.cp(f"file:{local_data_path}/sensor_readings_current_labeled_v4.csv", f"dbfs:/FileStore/flight/{dbfs_data_path}sensor_readings_current_labeled.csv")
 
 # COMMAND ----------
 
