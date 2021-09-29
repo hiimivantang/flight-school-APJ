@@ -58,8 +58,53 @@ print(f"Database Name: {database_name}")
 # COMMAND ----------
 
 # Let's set the default database name so we don't have to specify it on every query
-
 spark.sql(f"USE {database_name}")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC 
+# MAGIC <br><br><br><br><br>
+# MAGIC 
+# MAGIC ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fitang%2FVWgcGEReoX.png?alt=media&token=82cbf226-3ed6-4750-83f6-e577d954e46b)
+# MAGIC 
+# MAGIC <br><br><br><br><br>
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC 
+# MAGIC 
+# MAGIC 
+# MAGIC ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fitang%2FR7cx9R0JfE.png?alt=media&token=d3385f1c-7c68-46ae-89f2-aa6e1fdb6e29)
+# MAGIC 
+# MAGIC <br><br><br><br><br>
+# MAGIC 
+# MAGIC ### Challenges in Machine Learning Workflow
+# MAGIC <br>
+# MAGIC * **Difficult to keep track of experiments.**
+# MAGIC When you are just working with files on your laptop, or with an interactive notebook, how do you tell which data, code and parameters went into getting a particular result?
+# MAGIC <br><br>
+# MAGIC * **Difficult to reproduce code.** Even if you have meticulously tracked the code versions and parameters, you need to capture the whole environment (for example, library dependencies) to get the same result again. This is especially challenging if you want another data scientist to use your code, or if you want to run the same code at scale on another platform (for example, in the cloud).
+# MAGIC <br><br>
+# MAGIC * **No standard way to package and deploy models.** Every data science team comes up with its own approach for each ML library that it uses, and the link between a model and the code and parameters that produced it is often lost.
+# MAGIC <br><br>
+# MAGIC * **No central store to manage models.** A data science team creates many models. In absence of a central place to collaborate and manage model lifecycle, data science teams face challenges in how they manage models stages: from development to staging, and finally, to archiving or production, with respective versions, annotations, and history.
+# MAGIC 
+# MAGIC <br><br><br><br><br>
+
+# COMMAND ----------
+
+# MAGIC %md 
+# MAGIC <br><br><br><br><br>
+# MAGIC 
+# MAGIC ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fitang%2FbSxxC_mPvv.png?alt=media&token=daae356b-e96d-4163-94e0-1fe8552c13a1)
+# MAGIC 
+# MAGIC <br><br><br><br><br>
+
+# COMMAND ----------
+
+# MAGIC %md
 
 # COMMAND ----------
 
@@ -141,6 +186,10 @@ import time
 # MAGIC   COUNT(DISTINCT reading_2) AS distinct_reading_2s,
 # MAGIC   COUNT(DISTINCT reading_3) AS distinct_reading_3s
 # MAGIC FROM current_readings_labeled
+
+# COMMAND ----------
+
+# MAGIC %sql select distinct device_operational_status from current_readings_labeled
 
 # COMMAND ----------
 
@@ -454,6 +503,148 @@ def training_run(p_max_depth = 2, p_owner = "default") :
     #
     # END OF TO DO
     #
+    
+    return run.info.run_uuid
+
+# COMMAND ----------
+
+def training_run_on_databricks(p_max_depth = 2, p_owner = "default") :
+  with mlflow.start_run() as run:
+    
+    overall_start_time = time.time()
+    
+    mlflow.set_tag("Owner","p_owner") 
+    mlflow.log_param("Maximum Depth",p_max_depth)
+
+    # STEP 1: Read in the raw data to use for training
+    start_time = time.time()
+    df_raw_data = spark.sql("""
+      SELECT 
+        device_type,
+        device_operational_status AS label,
+        device_id,
+        reading_1,
+        reading_2,
+        reading_3
+      FROM current_readings_labeled
+    """)
+
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 1) # if unspecified, each metric is logged at 
+    
+    
+    start_time = time.time()
+    device_type_indexer = StringIndexer(inputCol="device_type", outputCol="device_type_index")
+    df_raw_data = device_type_indexer.fit(df_raw_data).transform(df_raw_data)
+
+    # Create a numerical index of device_id values (it's a category, but Decision Trees don't need OneHotEncoding)
+    device_id_indexer = StringIndexer(inputCol="device_id", outputCol="device_id_index")
+    df_raw_data = device_id_indexer.fit(df_raw_data).transform(df_raw_data)
+
+    # Create a numerical index of label values (device status) 
+    label_indexer = StringIndexer(inputCol="label", outputCol="label_index")
+    df_raw_data = label_indexer.fit(df_raw_data).transform(df_raw_data)
+    
+    # We'll use an MLflow metric to log the time taken in each step 
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+ 
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 2)
+   
+    
+    start_time = time.time()
+    # Populated df_raw_data with the all-numeric values
+    df_raw_data.createOrReplaceTempView("vw_raw_data")
+    df_raw_data = spark.sql("""
+    SELECT 
+      label_index AS label, 
+      device_type_index AS device_type,
+      device_id_index AS device_id,
+      reading_1,
+      reading_2,
+      reading_3
+    FROM vw_raw_data
+    """)
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 3)
+   
+  
+    start_time = time.time()
+    assembler = VectorAssembler( 
+    inputCols=["device_type", "device_id", "reading_1", "reading_2", "reading_3"], 
+    outputCol="features")
+    df_assembled_data = assembler.transform(df_raw_data).select("label", "features")
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 4)
+    
+    
+    start_time = time.time()
+    (training_data, test_data) = df_assembled_data.randomSplit([0.7, 0.3], seed=100)    
+    metrics = {"Training Data Rows": training_data.count(), "Test Data Rows": test_data.count()}
+    mlflow.log_metrics(metrics)
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 5)
+ 
+
+    # STEP 6: Train the model   
+    # We'll use an MLflow metric to log the time taken in each step 
+    start_time = time.time()
+    # Select the Decision Tree model type, and set its parameters
+    dtClassifier = DecisionTreeClassifier(labelCol="label", featuresCol="features")
+    dtClassifier.setMaxDepth(p_max_depth)
+    dtClassifier.setMaxBins(20) # This is how Spark decides if a feature is categorical or continuous
+    # Train the model
+    model = dtClassifier.fit(training_data)
+    # We'll use an MLflow metric to log the time taken in each step 
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 6)
+
+
+    # STEP 7: Test the model
+    # We'll use an MLflow metric to log the time taken in each step 
+    start_time = time.time()
+    df_predictions = model.transform(test_data)
+    # We'll use an MLflow metric to log the time taken in each step 
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 7)
+
+
+    # STEP 8: Determine the model's accuracy
+    # We'll use an MLflow metric to log the time taken in each step 
+    start_time = time.time()
+    evaluator = MulticlassClassificationEvaluator(
+    labelCol="label", predictionCol="prediction")
+    accuracy = evaluator.evaluate(df_predictions, {evaluator.metricName: "accuracy"})    
+    
+    # Log the model's accuracy in MLflow
+    mlflow.log_metric("Accuracy", accuracy)
+
+    
+    # Log the model's feature importances in MLflow
+    mlflow.log_param("Feature Importances", str(model.featureImportances))
+
+    
+    # We'll use an MLflow metric to log the time taken in each step 
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    mlflow.log_metric("Step Elapsed Time", elapsed_time, 8)
+
+    
+    # We'll also use an MLflow metric to log overall time
+    overall_end_time = time.time()
+    overall_elapsed_time = overall_end_time - overall_start_time
+      
+    mlflow.log_metric("Overall Elapsed Time", overall_elapsed_time)
+
+    
+    # Log the model itself
+    mlflow_spark.log_model(model,"spark-model") 
     
     return run.info.run_uuid
 
@@ -822,7 +1013,15 @@ mlflow_call_endpoint("registry-webhooks/create", method = "POST", body = trigger
 
 # DBTITLE 1,List all webhooks for our model
 list_model_webhooks = json.dumps({"model_name": "teamapj-predict-device-operational-status"})
-mlflow_call_endpoint("registry-webhooks/list", method = "GET", body = list_model_webhooks)
+webhooks = mlflow_call_endpoint("registry-webhooks/list", method = "GET", body = list_model_webhooks)
+print(webhooks)
+
+# COMMAND ----------
+
+for i in webhooks['webhooks']:
+  mlflow_call_endpoint("registry-webhooks/delete",
+                     method="DELETE",
+                     body = json.dumps({'id': i['id']}))
 
 # COMMAND ----------
 
@@ -851,3 +1050,17 @@ mlflow_call_endpoint("registry-webhooks/list", method = "GET", body = list_model
 # MAGIC  __*But we've just scratched the surface of what MLflow can do...*__
 # MAGIC  
 # MAGIC  To learn more, check out documentation and notebook examples for MLflow Models and MLflow Registry.
+
+# COMMAND ----------
+
+# MAGIC %md 
+# MAGIC 
+# MAGIC <br><br><br><br><br>
+# MAGIC 
+# MAGIC 
+# MAGIC 
+# MAGIC ![](https://firebasestorage.googleapis.com/v0/b/firescript-577a2.appspot.com/o/imgs%2Fapp%2Fitang%2F4YbCeo-pKD.png?alt=media&token=ccf693da-dc9a-470d-930f-3647f028daff)
+
+# COMMAND ----------
+
+
